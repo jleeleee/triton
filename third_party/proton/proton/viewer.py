@@ -4,6 +4,7 @@ import json
 import pandas as pd
 import hatchet as ht
 import numpy as np
+from .attributer import attribute_ttgir_frame_up
 from hatchet.query import NegationQuery
 from triton.profiler.hook import COMPUTE_METADATA_SCOPE_NAME, TritonHook
 
@@ -144,13 +145,23 @@ def derive_metrics(gf, metrics, raw_metrics, device_info):
     return derived_metrics + original_metrics
 
 
-def format_frames(gf, format):
-    if format == "file_function_line":
-        gf.dataframe["name"] = gf.dataframe["name"].apply(lambda x: x.split("/")[-1])
-    elif format == "function_line":
-        gf.dataframe["name"] = gf.dataframe["name"].apply(lambda x: x.split(":")[-1])
-    elif format == "file_function":
-        gf.dataframe["name"] = gf.dataframe["name"].apply(lambda x: x.split("/")[-1].split("@")[0])
+def format_frames(gf, format, pysource):
+    def modify_frames(col="name"):
+        if format == "file_function_line":
+            gf.dataframe[col] = gf.dataframe[col].apply(lambda x: x.split("/")[-1])
+        elif format == "function_line":
+            gf.dataframe[col] = gf.dataframe[col].apply(lambda x: x.split(":")[-1])
+        elif format == "file_function":
+            gf.dataframe[col] = gf.dataframe[col].apply(lambda x: x.split("/")[-1].split("@")[0])
+            
+    if pysource:
+        gf.dataframe["source_name"] = gf.dataframe["name"].apply(lambda x: attribute_ttgir_frame_up(x))
+        modify_frames("source_name")
+
+    modify_frames()
+
+    if pysource:
+        gf.dataframe["name"] = gf.dataframe["name"] + " -> " + gf.dataframe["source_name"]
     return gf
 
 
@@ -177,10 +188,10 @@ WHERE p."name" =~ "{exclude}"
     return gf
 
 
-def parse(metrics, filename, include, exclude, threshold, depth, format):
+def parse(metrics, filename, include, exclude, threshold, depth, format, pysource):
     with open(filename, "r") as f:
         gf, raw_metrics, device_info = get_raw_metrics(f)
-        gf = format_frames(gf, format)
+        gf = format_frames(gf, format, pysource)
         assert len(raw_metrics) > 0, "No metrics found in the input file"
         gf.update_inclusive_columns()
         metrics = derive_metrics(gf, metrics, raw_metrics, device_info)
@@ -286,6 +297,11 @@ proton-viewer -e ".*test.*" path/to/file.json
 - function_line: include the function name and line number.
 - file_function: include the file name and function name.
 """)
+    argparser.add_argument(
+        "-p", "--pysource", action="store_true", help="""Converts IR line attribution back to Python source.
+        Only available if the profiling was initially completed with USE_IR_LOC=ttgir
+        """
+    )
 
     args, target_args = argparser.parse_known_args()
     assert len(target_args) == 1, "Must specify a file to read"
@@ -297,12 +313,13 @@ proton-viewer -e ".*test.*" path/to/file.json
     threshold = args.threshold
     depth = args.depth
     format = args.format
+    pysource = args.pysource
     if include and exclude:
         raise ValueError("Cannot specify both include and exclude")
     if args.list:
         show_metrics(file_name)
     elif metrics:
-        parse(metrics, file_name, include, exclude, threshold, depth, format)
+        parse(metrics, file_name, include, exclude, threshold, depth, format, pysource)
 
 
 if __name__ == "__main__":
