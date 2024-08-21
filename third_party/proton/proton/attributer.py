@@ -6,7 +6,7 @@ location_map_cache = {}
 def parse_location_mappings(ir_file):
     """
     Parses the IR file content from a file object to extract the mapping of loc references to their source locations.
-    
+
     Returns a dictionary with loc references as keys and the corresponding source location strings as values.
     """
     location_mapping = {}
@@ -18,7 +18,7 @@ def parse_location_mappings(ir_file):
             loc_ref = match.group(1)
             loc_content = match.group(2)
             location_mapping[loc_ref] = loc_content
-    
+
     return location_mapping
 
 

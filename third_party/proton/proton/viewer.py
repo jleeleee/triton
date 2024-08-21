@@ -146,6 +146,7 @@ def derive_metrics(gf, metrics, raw_metrics, device_info):
 
 
 def format_frames(gf, format, pysource):
+
     def modify_frames(col="name"):
         if format == "file_function_line":
             gf.dataframe[col] = gf.dataframe[col].apply(lambda x: x.split("/")[-1])
@@ -153,7 +154,7 @@ def format_frames(gf, format, pysource):
             gf.dataframe[col] = gf.dataframe[col].apply(lambda x: x.split(":")[-1])
         elif format == "file_function":
             gf.dataframe[col] = gf.dataframe[col].apply(lambda x: x.split("/")[-1].split("@")[0])
-            
+
     if pysource:
         gf.dataframe["source_name"] = gf.dataframe["name"].apply(lambda x: attribute_ttgir_frame_up(x))
         modify_frames("source_name")
@@ -300,8 +301,7 @@ proton-viewer -e ".*test.*" path/to/file.json
     argparser.add_argument(
         "-p", "--pysource", action="store_true", help="""Converts IR line attribution back to Python source.
         Only available if the profiling was initially completed with USE_IR_LOC=ttgir
-        """
-    )
+        """)
 
     args, target_args = argparser.parse_known_args()
     assert len(target_args) == 1, "Must specify a file to read"
