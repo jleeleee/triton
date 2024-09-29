@@ -2,7 +2,11 @@ import argparse
 from collections import namedtuple
 import json
 import pandas as pd
-import hatchet as ht
+try:
+    import hatchet as ht
+    from hatchet.query import NegationQuery
+except ImportError:
+    raise ImportError("Failed to import hatchet. `pip install llnl-hatchet` to get the correct version.")
 import numpy as np
 from .attributer import attribute_ttgir_frame_up
 from hatchet.query import NegationQuery
@@ -133,7 +137,7 @@ def derive_metrics(gf, metrics, raw_metrics, device_info):
             derived_metrics.append(f"{metric} (inc)")
         elif metric in avg_time_factor_dict.factor:
             metric_time_unit = avg_time_factor_dict.name + "/" + metric.split("/")[1]
-            gf.dataframe[f"{metric} (inc)"] = (get_time_seconds(gf.dataframe) / gf.dataframe['Count'] /
+            gf.dataframe[f"{metric} (inc)"] = (get_time_seconds(gf.dataframe) / gf.dataframe['count'] /
                                                avg_time_factor_dict.factor[metric_time_unit])
             gf.dataframe.loc[internal_frame_indices, f"{metric} (inc)"] = np.nan
             derived_metrics.append(f"{metric} (inc)")

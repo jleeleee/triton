@@ -91,6 +91,6 @@ def attribute_ttgir_frame_up(input_frame):
                 location_map_cache[file_path] = parse_location_mappings(f)
 
         s = get_source_location_from_line(line_content, location_map_cache[file_path])
-        return s.replace("\"", "").replace(":", "@", 1).replace(":", "_")
+        return s.replace("\"", "").replace(":", ":@", 1).replace(":", "_")
     else:
         return input_frame
